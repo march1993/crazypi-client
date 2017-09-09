@@ -45,3 +45,15 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+
+
+
+
+
+
+# snap
+/parts
+/prime
+/stage
+/snap/plugins/__pycache__/

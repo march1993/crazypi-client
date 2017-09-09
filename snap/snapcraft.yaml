@@ -1,0 +1,25 @@
+name: crazypi-client
+version: '0.1'
+summary: Experimental client for Crazypi (https://www.crazyou.com/)
+description: |
+        This is an experimental client for Crazypi (https://www.crazyou.com/)
+
+grade: stable
+confinement: strict 
+
+parts:
+  workspace:
+    plugin: catkin
+    rosdistro: kinetic
+    catkin-packages: [crazypi_client]
+
+apps:
+  roscore:
+    command: roscore
+    plugs: [network, network-bind]
+
+  talker:
+    command: rosrun crazypi_client client.py
+    plugs: [network, network-bind]
+
+ 
