@@ -5,7 +5,7 @@ description: |
         This is an experimental client for Crazypi (https://www.crazyou.com/)
 
 grade: stable
-confinement: strict 
+confinement: strict
 
 parts:
   workspace:
@@ -16,10 +16,8 @@ parts:
 apps:
   roscore:
     command: roscore
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, home]
 
-  talker:
+  client:
     command: rosrun crazypi_client client.py
-    plugs: [network, network-bind]
-
- 
+    plugs: [network, network-bind, home]
