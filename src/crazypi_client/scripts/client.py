@@ -47,8 +47,68 @@ class MainWindow(QtGui.QWidget):
         super(MainWindow, self).__init__()
         layout = QtGui.QVBoxLayout()
         layout.addWidget(QtGui.QLabel('SB_GZX'))
+        forwardButton = QtGui.QPushButton('Forward')
+        layout.addWidget(forwardButton)
+        forwardButton.clicked.connect(self.forward)
+
+        backButton = QtGui.QPushButton('Back')
+        layout.addWidget(backButton)
+        backButton.clicked.connect(self.back)
+
+        leftRotButton = QtGui.QPushButton('LeftRot')
+        layout.addWidget(leftRotButton)
+        leftRotButton.clicked.connect(self.leftRot)
+
+        rightRotButton = QtGui.QPushButton('RightRot')
+        layout.addWidget(rightRotButton)
+        rightRotButton.clicked.connect(self.rightRot)
+
         self.setLayout(layout)
+
+        rospy.init_node('crazypi_client')
+        print "node initialized"
+
+        self.pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
+
         print 'ok'
+
+    def forward(self):
+        print('forward')
+
+        twist = WLCTwist()
+        for i in range(0, 10):
+            self.pub.publish(twist)
+            sleep(0.05)
+
+    def back(self):
+        print('back')
+        twist = WLCTwist()
+        for i in range(0, 10):
+            self.pub.publish(twist)
+            sleep(0.05)
+
+
+    def leftRot(self):
+        print('leftRot')
+        twist = WLCTwist()
+        for i in range(0, 10):
+            self.pub.publish(twist)
+            sleep(0.05)
+
+    def rightRot(self):
+        print('rightRot')
+        twist = WLCTwist()
+        for i in range(0, 10):
+            self.pub.publish(twist)
+            sleep(0.05)
+
+
+    def WLCTwist(self, linearX = 0.0, linearY = 0.0, angularZ = 0.0):
+        twist = Twist()
+        twist.linear.x = linearX
+        twist.linear.y = linearY
+        twist.angular.z = angularZ
+        return twist
 
 
 
@@ -91,6 +151,7 @@ class ConfigWindow(QtGui.QWidget):
         self.mainWindow = MainWindow()
         self.mainWindow.show()
         self.close()
+
 
 
 
