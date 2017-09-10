@@ -102,7 +102,6 @@ class MainWindow(QtGui.QWidget):
             self.pub.publish(twist)
             sleep(0.05)
 
-
     def WLCTwist(self, linearX = 0.0, linearY = 0.0, angularZ = 0.0):
         twist = Twist()
         twist.linear.x = linearX
