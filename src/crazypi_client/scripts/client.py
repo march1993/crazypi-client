@@ -3,33 +3,67 @@
 #
 import sys
 import os
+import json
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import *
-from PyQt4.QtCore import QThread, pyqtSignal
+from PyQt4.QtCore import QThread, pyqtSignal, QString
 
 import rospy
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 from time import sleep
 
+# Software License Agreement (BSD License)
+#
+# Copyright (c) 2012, Willow Garage, Inc.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+#  * Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+#  * Redistributions in binary form must reproduce the above
+#    copyright notice, this list of conditions and the following
+#    disclaimer in the documentation and/or other materials provided
+#    with the distribution.
+#  * Neither the name of Willow Garage, Inc. nor the names of its
+#    contributors may be used to endorse or promote products derived
+#    from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 
 
+from PIL import Image as ImagePP
+from base64 import standard_b64encode, standard_b64decode
+from StringIO import StringIO
+from math import floor, ceil, sqrt
+#from PIL.ImageQt import ImageQt
 
-def go1():
-    rospy.init_node('crazypi_client')
-    print "node initialized"
+def decode(string):
+    """ b64 decode the string, then PNG-decompress """
+    decoded = standard_b64decode(string)
+    buff = StringIO(decoded)
+    i = ImagePP.open(buff)
+    qim = ImageQt(i)
+    return qim
 
-    pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
 
-    twist = Twist()
-    twist.linear.x = 2.0
-    twist.linear.y = 2.0
-    twist.linear.z = 0.0
-    twist.angular.x = 0.0
-    twist.angular.y = 0.0
-    twist.angular.z = 0.0
-
+# crazypi-client
 
 
 def center(self):
@@ -57,11 +91,19 @@ def image_callback(msg):
     global mainWindow
     mainWindow.imageUpdateSlot.emit(image)
 
+def map_callback(msg):
+    # bytearray = QtCore.QByteArray.fromBase64(decode(json.loads(msg.data)['data']))
+    bytearray = QtCore.QByteArray.fromBase64(json.loads(msg.data)['data'])
+    # bytearray = decode(json.loads(msg.data)['data'])
+    image = QtGui.QImage.fromData(bytearray, 'PNG')
+    # image = decode(json.loads(msg.data)['data'])
+    mainWindow.mapUpdateSlot.emit(image)
 
 mainWindow = None
 
 class MainWindow(QtGui.QWidget):
     imageUpdateSlot = pyqtSignal(QImage, name = 'imageUpdateSlot')
+    mapUpdateSlot = pyqtSignal(QImage, name = 'mapUpdateSlot')
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -86,23 +128,32 @@ class MainWindow(QtGui.QWidget):
         self.imageLabel = QtGui.QLabel()
         layout.addWidget(self.imageLabel)
 
+        self.mapLabel = QtGui.QLabel()
+        layout.addWidget(self.mapLabel)
+
         self.setLayout(layout)
 
         rospy.init_node('crazypi_client')
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
 
         rospy.Subscriber('/camera/image_raw', Image, image_callback)
+        rospy.Subscriber('/crazy_map', String, map_callback)
 
         self.spinThread = SpinThread()
         self.spinThread.start()
 
         self.imageUpdateSlot.connect(self.imageUpdate)
+        self.mapUpdateSlot.connect(self.mapUpdate)
 
         print "node initialized"
 
     def imageUpdate(self, qImage):
         pm = QPixmap(qImage)
         self.imageLabel.setPixmap(pm)
+
+    def mapUpdate(self, qImage):
+        pm = QPixmap(qImage)
+        self.mapLabel.setPixmap(pm)
 
     def forward(self):
         print('forward')
