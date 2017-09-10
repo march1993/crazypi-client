@@ -11,6 +11,8 @@ parts:
   workspace:
     plugin: catkin
     rosdistro: kinetic
+    build-packages:
+      - lsb-release
     stage-packages:
       - lsb-release
     catkin-packages: [crazypi_client]
