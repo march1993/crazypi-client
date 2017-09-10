@@ -6,19 +6,12 @@ import os
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import *
+from PyQt4.QtCore import QThread, pyqtSignal
 
 import rospy
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import Image
 from time import sleep
-
-def h1():
-    os.environ["ROS_MASTER_URI"] = "http://192.168.99.1:11311"
-
-    print "sending message..."
-    try:
-        go1()
-    except rospy.ROSInterruptException:
-        pass
 
 
 
@@ -37,9 +30,7 @@ def go1():
     twist.angular.y = 0.0
     twist.angular.z = 0.0
 
-    for i in range(0, 10):
-        pub.publish(twist)
-        sleep(0.05)
+
 
 def center(self):
     frameGm = self.frameGeometry()
@@ -49,7 +40,29 @@ def center(self):
     self.move(frameGm.topLeft())
 
 
+
+class SpinThread(QThread):
+    def __init__(self):
+        QThread.__init__(self)
+
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        # your logic here
+        rospy.spin()
+
+def image_callback(msg):
+    image = QImage(msg.data, msg.width, msg.height, QImage.Format_RGB888);
+    global mainWindow
+    mainWindow.imageUpdateSlot.emit(image)
+
+
+mainWindow = None
+
 class MainWindow(QtGui.QWidget):
+    imageUpdateSlot = pyqtSignal(QImage, name = 'imageUpdateSlot')
+
     def __init__(self):
         super(MainWindow, self).__init__()
         layout = QtGui.QVBoxLayout()
@@ -70,45 +83,68 @@ class MainWindow(QtGui.QWidget):
         layout.addWidget(rightRotButton)
         rightRotButton.clicked.connect(self.rightRot)
 
+        self.imageLabel = QtGui.QLabel()
+        layout.addWidget(self.imageLabel)
+
         self.setLayout(layout)
 
         rospy.init_node('crazypi_client')
-        print "node initialized"
-
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
 
-        print 'ok'
-        center(self)
+        rospy.Subscriber('/camera/image_raw', Image, image_callback)
+
+        self.spinThread = SpinThread()
+        self.spinThread.start()
+
+        self.imageUpdateSlot.connect(self.imageUpdate)
+
+        print "node initialized"
+
+    def imageUpdate(self, qImage):
+        pm = QPixmap(qImage)
+        self.imageLabel.setPixmap(pm)
 
     def forward(self):
         print('forward')
 
         twist = self.WLCTwist(2,0,0)
-        for i in range(0, 5):
-            self.pub.publish(twist)
-            sleep(0.05)
+        try:
+            for i in range(0, 10):
+                self.pub.publish(twist)
+                sleep(0.05)
+        except rospy.ROSInterruptException:
+            pass
 
     def back(self):
         print('back')
         twist = self.WLCTwist(-2,0,0)
-        for i in range(0, 5):
-            self.pub.publish(twist)
-            sleep(0.05)
+        try:
+            for i in range(0, 10):
+                self.pub.publish(twist)
+                sleep(0.05)
+        except rospy.ROSInterruptException:
+            pass
 
 
     def leftRot(self):
         print('leftRot')
         twist = self.WLCTwist(0,0,2)
-        for i in range(0, 5):
-            self.pub.publish(twist)
-            sleep(0.05)
+        try:
+            for i in range(0, 10):
+                self.pub.publish(twist)
+                sleep(0.05)
+        except rospy.ROSInterruptException:
+            pass
 
     def rightRot(self):
         print('rightRot')
         twist = self.WLCTwist(0,0,-2)
-        for i in range(0, 5):
-            self.pub.publish(twist)
-            sleep(0.05)
+        try:
+            for i in range(0, 10):
+                self.pub.publish(twist)
+                sleep(0.05)
+        except rospy.ROSInterruptException:
+            pass
 
     def WLCTwist(self, linearX = 0.0, linearY = 0.0, angularZ = 0.0):
         twist = Twist()
@@ -116,9 +152,6 @@ class MainWindow(QtGui.QWidget):
         twist.linear.y = linearY
         twist.angular.z = angularZ
         return twist
-
-
-
 
 
 class ConfigWindow(QtGui.QWidget):
@@ -149,7 +182,6 @@ class ConfigWindow(QtGui.QWidget):
         button.clicked.connect(self.connect)
 
         self.setLayout(layout)
-        center(self)
 
     def connect(self):
         os.environ["ROS_MASTER_URI"] = "http://" + str(self.t1.text()) + ":11311"
@@ -159,6 +191,10 @@ class ConfigWindow(QtGui.QWidget):
 
         self.mainWindow = MainWindow()
         self.mainWindow.show()
+        center(self.mainWindow)
+        global mainWindow
+        mainWindow = self.mainWindow
+
         self.close()
 
 
@@ -175,6 +211,7 @@ if __name__ == '__main__':
 
     # Show window
     configWindow.show()
+    center(configWindow)
 
     sys.exit(app.exec_())
 
