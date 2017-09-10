@@ -41,12 +41,19 @@ def go1():
         pub.publish(twist)
         sleep(0.05)
 
+def center(self):
+    frameGm = self.frameGeometry()
+    screen = QtGui.QApplication.desktop().screenNumber(QtGui.QApplication.desktop().cursor().pos())
+    centerPoint = QtGui.QApplication.desktop().screenGeometry(screen).center()
+    frameGm.moveCenter(centerPoint)
+    self.move(frameGm.topLeft())
+
 
 class MainWindow(QtGui.QWidget):
     def __init__(self):
         super(MainWindow, self).__init__()
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(QtGui.QLabel('SB_GZX'))
+
         forwardButton = QtGui.QPushButton('Forward')
         layout.addWidget(forwardButton)
         forwardButton.clicked.connect(self.forward)
@@ -71,34 +78,35 @@ class MainWindow(QtGui.QWidget):
         self.pub = rospy.Publisher('cmd_vel', Twist, queue_size = 10)
 
         print 'ok'
+        center(self)
 
     def forward(self):
         print('forward')
 
-        twist = WLCTwist()
-        for i in range(0, 10):
+        twist = self.WLCTwist(2,0,0)
+        for i in range(0, 5):
             self.pub.publish(twist)
             sleep(0.05)
 
     def back(self):
         print('back')
-        twist = WLCTwist()
-        for i in range(0, 10):
+        twist = self.WLCTwist(-2,0,0)
+        for i in range(0, 5):
             self.pub.publish(twist)
             sleep(0.05)
 
 
     def leftRot(self):
         print('leftRot')
-        twist = WLCTwist()
-        for i in range(0, 10):
+        twist = self.WLCTwist(0,0,2)
+        for i in range(0, 5):
             self.pub.publish(twist)
             sleep(0.05)
 
     def rightRot(self):
         print('rightRot')
-        twist = WLCTwist()
-        for i in range(0, 10):
+        twist = self.WLCTwist(0,0,-2)
+        for i in range(0, 5):
             self.pub.publish(twist)
             sleep(0.05)
 
@@ -108,6 +116,8 @@ class MainWindow(QtGui.QWidget):
         twist.linear.y = linearY
         twist.angular.z = angularZ
         return twist
+
+
 
 
 
@@ -139,7 +149,7 @@ class ConfigWindow(QtGui.QWidget):
         button.clicked.connect(self.connect)
 
         self.setLayout(layout)
-
+        center(self)
 
     def connect(self):
         os.environ["ROS_MASTER_URI"] = "http://" + str(self.t1.text()) + ":11311"
